@@ -63,7 +63,7 @@ backend_decr_session_count (BACKEND *be)
 static void
 session_free (SESSION *sess)
 {
-  backend_decr_session_count(sess->backend)
+  backend_decr_session_count(sess->backend);
   free (sess);
 }
 
