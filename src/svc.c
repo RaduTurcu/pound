@@ -44,9 +44,26 @@ session_unlink (SESSION_TABLE *tab, SESSION *sess)
   DLIST_REMOVE (&tab->head, sess, link);
 }
 
+static inline void 
+backend_incr_session_count (BACKEND *be)
+{
+  //pthread_mutex_lock (&be->mut);
+  be->session_count++;
+  //pthread_mutex_unlock (&be->mut);
+}
+
+static inline void 
+backend_decr_session_count (BACKEND *be)
+{
+  //pthread_mutex_lock (&be->mut);
+  be->session_count--;
+  //pthread_mutex_unlock (&be->mut);
+}
+
 static void
 session_free (SESSION *sess)
 {
+  backend_decr_session_count(sess->backend)
   free (sess);
 }
 
@@ -139,6 +156,7 @@ service_session_add (SERVICE *svc, const char *key, BACKEND *be)
       session_free (old);
       logmsg (LOG_WARNING, "service_session_add() DUP");
     }
+  backend_incr_session_count(be);
   session_link_at_tail (tab, t);
   if (DLIST_NEXT (DLIST_FIRST (&tab->head), link) == 0)
     job_enqueue (&t->expire, expire_sessions, svc);
@@ -425,6 +443,28 @@ iwrr_select (SERVICE *svc)
 }
 
 static BACKEND *
+balanced_select (SERVICE *svc)
+{
+  BACKEND *be = NULL;
+  BACKEND *b_cur = SLIST_FIRST (&svc->backends);
+
+  while( b_cur->disabled || !backend_is_alive(b_cur) )
+    b_cur = SLIST_NEXT (b_cur, next))
+
+  be = b_cur;
+  
+  while ((b_cur = SLIST_NEXT (b_cur, next)) != NULL) 
+  {
+    if (!backend_is_alive (b_cur) || b_cur->disabled)
+	    continue;
+    if ( be->session_count < b_cur->session_count)
+	    be = b_cur;
+  }
+
+  return be;
+}
+
+static BACKEND *
 service_lb_select_backend (SERVICE *svc)
 {
   BACKEND *be;
@@ -447,6 +487,11 @@ service_lb_select_backend (SERVICE *svc)
 
     case BALANCER_IWRR:
       be = iwrr_select (svc);
+      break;
+
+    case BALANCER_BALANCED:
+      be = balanced_select (svc);
+      break;
     }
   return be;
 }
@@ -462,6 +507,9 @@ service_lb_init (SERVICE *svc)
     case BALANCER_IWRR:
       svc->iwrr_round = 0;
       svc->iwrr_cur = SLIST_FIRST (&svc->backends);
+      break;
+
+    case BALANCER_BALANCED:
       break;
     }
 }
@@ -1716,7 +1764,8 @@ backend_stats_serialize (BACKEND *be)
       int err = 0;
 
       pthread_mutex_lock (&be->mut);
-      err |= json_object_set (obj, "request_count", json_new_number (be->numreq));
+      err |= json_object_set (obj, "request_count", json_new_number (be->numreq))
+            || json_object_set (obj, "session_count", json_new_number (be->session_count));
       if (be->numreq > 0)
 	{
 	  err |= json_object_set (obj, "request_time_avg",

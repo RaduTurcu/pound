@@ -3287,6 +3287,8 @@ parse_balancer (void *call_data, void *section_data)
     *t = BALANCER_RANDOM;
   else if (strcasecmp (tok->str, "iwrr") == 0)
     *t = BALANCER_IWRR;
+  else if (strcasecmp (tok->str, "balanced") == 0)
+    *t = BALANCER_BALANCED;
   else
     {
       conf_error ("unsupported balancing strategy: %s", tok->str);

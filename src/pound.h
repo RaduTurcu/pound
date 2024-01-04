@@ -465,6 +465,7 @@ typedef struct _backend
   double numreq;		/* number of requests seen */
   double avgtime;		/* Avg. time per request */
   double avgsqtime;             /* Avg. squared time per request */
+  double session_count;		/* number of active sessions */
 
   /* Data specific for each backend type. */
   union
@@ -649,6 +650,7 @@ typedef enum
   {
     BALANCER_RANDOM,
     BALANCER_IWRR,
+    BALANCER_BALANCED,
   } BALANCER;
 
 enum

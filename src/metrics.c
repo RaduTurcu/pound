@@ -256,6 +256,8 @@ static int gen_backend_request_stddev (EXPOSITION *exp, struct metric *metric,
 				 METRIC_LABELS *pfx, struct json_value *obj);
 static int gen_workers (EXPOSITION *exp, struct metric *metric,
 			METRIC_LABELS *pfx, struct json_value *obj);
+static int gen_backend_session_count (EXPOSITION *exp, struct metric *metric,
+			METRIC_LABELS *pfx, struct json_value *obj);
 
 static struct metric_family listener_metric_families[] = {
   { "pound_listener_enabled",
@@ -318,6 +320,11 @@ static struct metric_family backend_metric_families[] = {
     "nanoseconds",
     "Standard deviation of the average time per request.",
     gen_backend_request_stddev },
+  { "pound_backend_sessions_count",
+    "gauge",
+    NULL,
+    "Number of active sessions count by backend,",
+    gen_backend_session_count },
   { NULL }
 };
 
@@ -798,6 +805,14 @@ gen_backend_request_stddev (EXPOSITION *exp, struct metric *metric,
 {
   return gen_backend_stats (exp, metric, pfx, obj, "request_time_stddev");
 }
+
+static int
+gen_backend_session_count (EXPOSITION *exp, struct metric *metric,
+			    METRIC_LABELS *pfx, struct json_value *obj)
+{
+  return gen_backend_stats (exp, metric, pfx, obj, "session_count");
+}
+
 
 static int
 gen_workers (EXPOSITION *exp, struct metric *metric,
