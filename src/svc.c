@@ -449,7 +449,7 @@ balanced_select (SERVICE *svc)
   BACKEND *b_cur = SLIST_FIRST (&svc->backends);
 
   while( b_cur->disabled || !backend_is_alive(b_cur) )
-    b_cur = SLIST_NEXT (b_cur, next));
+    b_cur = SLIST_NEXT (b_cur, next);
 
   be = b_cur;
   
